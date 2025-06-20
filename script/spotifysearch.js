@@ -1,76 +1,52 @@
-const axios = require('axios');
+const axios = require("axios");
+const { sendMessage } = require("../handles/sendMessage");
 
-module.exports.config = {
+module.exports = {
   name: "spotifysearch",
-  version: "1.0.0",
-  role: 0,
-  credits: "vern",
-  description: "Search for Spotify tracks using the Kaiz API.",
-  usage: "/spotifysearch <search query>",
-  prefix: true,
-  cooldowns: 3,
-  commandCategory: "Music"
-};
+  description: "Search for songs via Spotify",
+  author: "Vern",
+  usage: "spotifysearch [song name]",
+  cooldown: 3,
 
-module.exports.run = async function ({ api, event, args }) {
-  const { threadID, messageID } = event;
-  const query = args.join(' ').trim();
-  const prefix = "/"; // Change if your bot uses a dynamic prefix
+  async execute(senderId, args, pageAccessToken) {
+    const query = args.join(" ").trim();
 
-  // No search query provided
-  if (!query) {
-    const usageMessage = `════『 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 𝗦𝗘𝗔𝗥𝗖𝗛 』════\n\n` +
-      `⚠️ Please provide a search term for Spotify tracks.\n\n` +
-      `📌 Usage: ${prefix}spotifysearch <search query>\n` +
-      `💬 Example: ${prefix}spotifysearch about you\n\n` +
-      `> Thank you for using Spotify Search!`;
-
-    return api.sendMessage(usageMessage, threadID, messageID);
-  }
-
-  try {
-    // Send loading message first
-    const waitMsg = `════『 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 𝗦𝗘𝗔𝗥𝗖𝗛 』════\n\n` +
-      `🔎 Searching Spotify for: "${query}"\nPlease wait a moment...`;
-    await api.sendMessage(waitMsg, threadID, messageID);
-
-    // Call the Spotify Search API
-    const apiUrl = "https://kaiz-apis.gleeze.com/api/spotify-search";
-    const response = await axios.get(apiUrl, {
-      params: {
-        q: query,
-        apikey: "4fe7e522-70b7-420b-a746-d7a23db49ee5"
-      }
-    });
-
-    const data = response.data?.result || response.data?.tracks || response.data;
-    let resultMsg = `════『 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 𝗦𝗘𝗔𝗥𝗖𝗛 』════\n\n`;
-
-    if (Array.isArray(data) && data.length > 0) {
-      data.slice(0, 5).forEach((track, idx) => {
-        resultMsg += `#${idx + 1}\n`;
-        if (track.title) resultMsg += `• Title: ${track.title}\n`;
-        if (track.artist) resultMsg += `• Artist: ${track.artist}\n`;
-        if (track.album) resultMsg += `• Album: ${track.album}\n`;
-        if (track.url) resultMsg += `• URL: ${track.url}\n`;
-        if (track.release_date) resultMsg += `• Release Date: ${track.release_date}\n`;
-        resultMsg += `\n`;
-      });
-    } else {
-      resultMsg += "⚠️ No results found.";
+    if (!query) {
+      return sendMessage(senderId, {
+        text: "🎵 Please enter a song title.\nExample: spotifysearch multo"
+      }, pageAccessToken);
     }
 
-    resultMsg += `> Powered by Kaiz Spotify Search API`;
+    const apiUrl = `https://kaiz-apis.gleeze.com/api/spotify-search?q=${encodeURIComponent(query)}&apikey=4fe7e522-70b7-420b-a746-d7a23db49ee5`;
 
-    return api.sendMessage(resultMsg, threadID, messageID);
+    try {
+      const { data } = await axios.get(apiUrl);
 
-  } catch (error) {
-    console.error('❌ Error in spotifysearch command:', error.message || error);
+      if (!data || !data.result || data.result.length === 0) {
+        return sendMessage(senderId, {
+          text: "❌ No results found."
+        }, pageAccessToken);
+      }
 
-    const errorMessage = `════『 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 𝗦𝗘𝗔𝗥𝗖𝗛 𝗘𝗥𝗥𝗢𝗥 』════\n\n` +
-      `🚫 Failed to search Spotify.\nReason: ${error.response?.data?.message || error.message || 'Unknown error'}\n\n` +
-      `> Please try again later.`;
+      const song = data.result[0];
+      const message = `🎶 𝗦𝗣𝗢𝗧𝗜𝗙𝗬 𝗥𝗘𝗦𝗨𝗟𝗧 🎶\n─────────────\n📌 𝗧𝗶𝘁𝗹𝗲: ${song.title}\n🎤 𝗔𝗿𝘁𝗶𝘀𝘁: ${song.artists}\n📀 𝗔𝗹𝗯𝘂𝗺: ${song.album}\n🔗 ${song.url}\n─────────────`;
 
-    return api.sendMessage(errorMessage, threadID, messageID);
+      await sendMessage(senderId, { text: message }, pageAccessToken);
+
+      if (song.thumbnail) {
+        await sendMessage(senderId, {
+          attachment: {
+            type: "image",
+            payload: { url: song.thumbnail }
+          }
+        }, pageAccessToken);
+      }
+
+    } catch (error) {
+      console.error("❌ Spotify Search Error:", error.message);
+      return sendMessage(senderId, {
+        text: `❌ An error occurred while searching.\nReason: ${error.message || "Unknown error"}`
+      }, pageAccessToken);
+    }
   }
 };
