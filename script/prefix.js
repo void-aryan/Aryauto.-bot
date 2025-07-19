@@ -8,7 +8,7 @@ let config = {};
 try {
   config = JSON.parse(fs.readFileSync(path.join(__dirname, "../config.json")));
 } catch (e) {
-  config.prefix = "/";
+  config.prefix = "-";
   config.botName = "𝘃𝗲𝗿𝗻";
 }
 
