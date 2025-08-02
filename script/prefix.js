@@ -8,8 +8,8 @@ let config = {};
 try {
   config = JSON.parse(fs.readFileSync(path.join(__dirname, "../config.json")));
 } catch (e) {
-  config.prefix = "-";
-  config.botName = "𝘃𝗲𝗿𝗻";
+  config.prefix = " ";
+  config.botName = "🤖 | 𝙴𝚌𝚑𝚘 𝙰𝙸";
 }
 
 module.exports.config = {
@@ -26,8 +26,8 @@ module.exports.config = {
 
 module.exports.run = async function ({ api, event }) {
   const { threadID, messageID } = event;
-  const botPrefix = config.prefix || "/";
-  const botName = config.botName || "𝘃𝗲𝗿𝗻";
+  const botPrefix = config.prefix || " ";
+  const botName = config.botName || "🤖 | 𝙴𝚌𝚑𝚘 𝙰𝙸";
   const gifUrl = "https://media2.giphy.com/media/v1.Y2lkPTZjMDliOTUyc2FyazdsM3R2a3U2dDNsaGpzcDZ1M3d5cGxheGdrZHI2M2RvZ2xlcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/uBTWyINWTrWz6/giphy.gif";
 
   const tempFilePath = path.join(__dirname, `prefix_${Date.now()}.gif`);
