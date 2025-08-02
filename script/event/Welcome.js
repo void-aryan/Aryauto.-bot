@@ -38,7 +38,7 @@ module.exports.handleEvent = async function ({ api, event }) {
         } catch (error) {
             console.error("Error fetching welcome image:", error);
             api.sendMessage({
-                body: `Everyone welcome the new member ${name} to ${groupName}!`
+                body: `🤖 | everyone welcome the new member ${name} to ${groupName}!`
             }, event.threadID);
         }
     }
