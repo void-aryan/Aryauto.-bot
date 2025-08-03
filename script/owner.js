@@ -36,8 +36,13 @@ module.exports.run = async ({ api, event }) => {
       "https://files.catbox.moe/93flm8.mp4",
       "https://files.catbox.moe/ogjrsp.mp4",
       "https://files.catbox.moe/c7iby8.mp4",
-      "https://files.catbox.moe/9x5sy4.mp4"
-			];
+      "https://files.catbox.moe/9x5sy4.mp4",
+      "https://files.catbox.moe/a7h2kf.mp4",
+      "https://files.catbox.moe/xxh75i.mp4",
+      "https://files.catbox.moe/ul6ock.mp4",
+      "https://files.catbox.moe/pu1t2x.mp4",
+      "https://files.catbox.moe/qs9da7.mp4"
+		];
 
 		const chosenVideoUrl = videoUrl[Math.floor(Math.random() * videoUrl.length)];
 		const tmpFolderPath = path.join(__dirname, 'tmp');
