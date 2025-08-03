@@ -1,26 +1,23 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 module.exports.config = {
-  name: "redroom",
-  version: "1.0.0",
-  permission: 0,
-  credits: "AJ/ARI",
-  description: "Sends a Red Room aesthetic video",
-  category: "aesthetic",
-  usages: "",
-  cooldowns: 5,
+	name: 'redroom',
+	version: '1.0.0',
+	hasPermision: 0,
+	credits: 'Modified by AJ/ARI',
+	usePrefix: false,
+	description: 'Sends a redroom video',
+	commandCategory: 'system',
+	usages: '',
+	cooldowns: 0
 };
 
-module.exports.run = async function ({ api, event }) {
-  const message = `🎥 𝗥𝗘𝗗 𝗥𝗢𝗢𝗠 
-
-🔴 You are now entering the RED ROOM...
-✨ Enjoy and silence.`;
-
-  const videoUrl = [
-    "https://files.catbox.moe/c039x7.mp4",
+module.exports.run = async ({ api, event }) => {
+	try {
+		const videoUrls = [
+		"https://files.catbox.moe/c039x7.mp4",
     "https://files.catbox.moe/cyzs91.mp4",
     "https://files.catbox.moe/gpjmmw.mp4",
     "https://files.catbox.moe/gpjmmw.mp4",
@@ -38,23 +35,32 @@ module.exports.run = async function ({ api, event }) {
     "https://files.catbox.moe/kqge9z.mp4",
     "https://files.catbox.moe/0ic5f9.mp4"
     ];
-  try {
-    const res = await axios.get(videoUrl, { responseType: "arraybuffer" });
-    const filePath = path.join(__dirname, "/cache/redroomvideo.mp4");
 
-    fs.writeFileSync(filePath, Buffer.from(res.data, "binary"));
+		const chosenVideoUrl = videoUrls[Math.floor(Math.random() * videoUrls.length)];
+		const tmpFolderPath = path.join(__dirname, 'tmp');
 
-    api.sendMessage(
-      {
-        body: message,
-        attachment: fs.createReadStream(filePath),
-      }, 
-      event.threadID,
-      () => fs.unlinkSync(filePath),
-      event.messageID
-    );
-  } catch (err) {
-    console.error(err);
-    return api.sendMessage("❌ Failed to load the Red Room video.", event.threadID, event.messageID);
-  }
+		if (!fs.existsSync(tmpFolderPath)) {
+			fs.mkdirSync(tmpFolderPath);
+		}
+
+		const filePath = path.join(tmpFolderPath, (Math.random() + 1).toString(36).substring(4) + '_redroom.mp4');
+
+		const videoResponse = await axios.get(chosenVideoUrl, { responseType: 'arraybuffer' });
+		fs.writeFileSync(filePath, Buffer.from(videoResponse.data, 'binary'));
+
+		await api.sendMessage({
+			body: `🚨 𝗥𝗘𝗗𝗥𝗢𝗢𝗠 𝗜𝗡𝗜𝗧𝗜𝗔𝗧𝗘𝗗`,
+			attachment: fs.createReadStream(filePath)
+		}, event.threadID, event.messageID);
+
+		fs.unlinkSync(filePath);
+
+		if (event.body && event.body.toLowerCase().includes('redroom')) {
+			api.setMessageReaction('🔴', event.messageID, (err) => {}, true);
+		}
+
+	} catch (error) {
+		console.error('Error in redroom command:', error);
+		return api.sendMessage('❌ An error occurred while processing the redroom command.', event.threadID);
+	}
 };
