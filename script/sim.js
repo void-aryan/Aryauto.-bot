@@ -1,4 +1,5 @@
-import axios from 'axios';
+const axios = require('axios');
+
 const endpoint = "https://simsimi-api-pro.onrender.com/sim?query=";
 const key = "a650beda66094d58b3e5c84b664420e8f2e65edd";
 
