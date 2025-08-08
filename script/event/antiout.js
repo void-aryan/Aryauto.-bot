@@ -16,7 +16,7 @@ module.exports.handleEvent = async ({
       if (error) {
         api.sendMessage(`Woyyy gago! bat umalis si ${name} mamimiss kita beshie, ingat ka tanga kapa naman 🙁`, event.threadID);
       } else {
-        api.sendMessage(`HAHAHAHA TANGA, wala kang takas kay vern ${name} kung d lang kita lab d kita ibabalik （￣へ￣）`, event.threadID);
+        api.sendMessage(`HAHAHAHA TANGA, wala kang takas kay 🤖 | 𝙴𝚌𝚑𝚘 𝙰𝙸 ${name} kung d lang kita lab d kita ibabalik （￣へ￣）`, event.threadID);
       }
     });
   }
