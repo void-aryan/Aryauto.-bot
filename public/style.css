@@ -23,6 +23,9 @@ body {
   background-color: #1a001a;
   color: #f2e6ff;
   font-family: 'Poppins', sans-serif;
+  background-image: url("https://files.catbox.moe/ve74ve.png"); no-repeat center center fixed;
+  background-size: cover;
+  background-position: center;
 }
 
 .header {
