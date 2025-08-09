@@ -75,24 +75,19 @@
 
     <script src="script.js"></script>
     <script>
-      let audioStarted = false;
+let audioStarted = false;
 
-      document.addEventListener("click", function () {
-        if (!audioStarted) {
-          const iframe = document.createElement("iframe");
-          iframe.width = "1";
-          iframe.height = "1";
-          iframe.src = "https://youtu.be/ApXoWvfEYVU?si=Hc60e7pLtmfbEzOv&_cc_load_policy=true";
-          iframe.frameBorder = "0";
-          iframe.allow = "autoplay; encrypted-media";
-          iframe.allowFullscreen = true;
-          iframe.style.opacity = "0";
-          iframe.style.position = "absolute";
-          iframe.style.left = "-9999px";
-          document.getElementById("audio-container").appendChild(iframe);
-          audioStarted = true;
-        }
-      });
-    </script>
+document.addEventListener("click", function () {
+  if (!audioStarted) {
+    const audio = document.createElement("audio");
+    audio.src = "https://youtu.be/ApXoWvfEYVU?si=Hc60e7pLtmfbEzOv&_cc_load_policy=true";
+    audio.autoplay = true;
+    audio.loop = true;
+    audio.style.display = "none";
+    document.getElementById("audio-container").appendChild(audio);
+    audioStarted = true;
+  }
+});
+</script>
   </body>
 </html>
