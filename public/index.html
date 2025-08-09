@@ -11,17 +11,10 @@
   </head>
   <body>
     <div class="header">
-      <video id="myVideo" width="360" height="300">
+      <video width="360" height="300" autoplay muted loop>
   <source src="https://files.catbox.moe/hk31hb.mp4" type="video/mp4">
   Your browser does not support the video tag.
-</video>
-
-<script>
-  document.addEventListener("click", function() {
-    const video = document.getElementById("myVideo");
-    video.play();
-  }, { once: true }); // plays only on first click
-</script>
+      </video>
       <img src="https://i.imgur.com/Haz5yJT.jpeg" alt="Profile" class="profile-pic" />
     </div>
 
