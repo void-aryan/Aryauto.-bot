@@ -1,84 +1,67 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
 module.exports.config = {
-	name: 'owner',
-	version: '1.0.0',
-	hasPermision: 0,
-	credits: 'Vern',
-	usePrefix: false,
-	description: 'Display bot owner information',
-	commandCategory: 'system',
-	usages: '',
-	cooldowns: 0
+  name: "owner",
+  version: "1.0.0",
+  hasPermission: 0,
+  credits: "ARI",
+  description: "Show owner/developer info and contact links",
+  cooldowns: 5
 };
 
-module.exports.run = async ({ api, event }) => {
-	try {
-		const ownerInfo = {
-			name: `ARI`,
-			gender: 'MALE',
-			age: 'HULAAN MO NALANG',
-			height: '69',
-			facebookLink: `https://www.facebook.com/61577110900436`,
-			status: 'GUTOM'
-		};
+const OWNER = {
+  name: "ARI",
+  contact: "+63 936 566 3754",                           
+  bio: "Developer of AutoBot — building neat chat tools and automation.",
+  socials: {
+    github: "https://github.com/mojin3348",
+    facebook: "https://www.facebook.com/61577110900436"
+  },
+  avatar: "https://ibb.co/JWg5pHST.jpeg"
+};
 
-		const videoUrl =  [
-      "https://files.catbox.moe/eksnob.mp4",
-      "https://files.catbox.moe/l27lu3.mp4",
-      "https://files.catbox.moe/4sh4f2.mp4",
-      "https://files.catbox.moe/af5o24.mp4",
-      "https://files.catbox.moe/i1sfb7.mp4",
-      "https://files.catbox.moe/tiygtc.mp4",
-      "https://files.catbox.moe/pxn6ri.mp4",
-      "https://files.catbox.moe/93flm8.mp4",
-      "https://files.catbox.moe/ogjrsp.mp4",
-      "https://files.catbox.moe/c7iby8.mp4",
-      "https://files.catbox.moe/9x5sy4.mp4",
-      "https://files.catbox.moe/a7h2kf.mp4",
-      "https://files.catbox.moe/xxh75i.mp4",
-      "https://files.catbox.moe/ul6ock.mp4",
-      "https://files.catbox.moe/pu1t2x.mp4",
-      "https://files.catbox.moe/qs9da7.mp4"
-		];
+function formatSocials(s) {
+  const lines = [];
+  if (s.github) lines.push(`• GitHub: ${s.github}`);
+  if (s.facebook) lines.push(`• Facebook: ${s.facebook}`);
+  return lines.join("\n");
+}
 
-		const chosenVideoUrl = videoUrl[Math.floor(Math.random() * videoUrl.length)];
-		const tmpFolderPath = path.join(__dirname, 'tmp');
+module.exports.run = async function({ api, event, args, message, Users, Threads }) {
+  const uptimeSec = process.uptime();
+  const uptime = new Date(uptimeSec * 1000).toISOString().substr(11, 8); 
 
-		if (!fs.existsSync(tmpFolderPath)) {
-			fs.mkdirSync(tmpFolderPath);
-		}
+  let textLines = [
+    `👤 Owner Info`,
+    `Name: ${OWNER.name}`,
+    OWNER.contact ? `Contact: ${OWNER.contact}` : null,
+    `Bio: ${OWNER.bio}`,
+    "",
+    `🔗 Socials:`,
+    formatSocials(OWNER.socials),
+    "",
+    `🔧 Bot info`,
+    `Uptime: ${uptime}`,
+    `Version: ${module.exports.config.version}`
+  ].filter(Boolean);
 
-		const filePath = path.join(tmpFolderPath, (Math.random() + 1).toString(36).substring(4) + '_owner_video.mp4'); // adding random string to file name to prevent collision
+  const messageText = textLines.join("\n");
 
-		const videoResponse = await axios.get(chosenVideoUrl, { responseType: 'arraybuffer' });
-		fs.writeFileSync(filePath, Buffer.from(videoResponse.data, 'binary'));
-
-		const response = `
-✧ 𝗢𝗪𝗡𝗘𝗥 𝗜𝗡𝗙𝗢𝗥𝗠𝗔𝗧𝗜𝗢𝗡 ✧\n
-Name: ${ownerInfo.name}
-Gender: ${ownerInfo.gender}
-Age: ${ownerInfo.age}
-Height: ${ownerInfo.height}
-Facebook: ${ownerInfo.facebookLink}
-Status: ${ownerInfo.status}
-`;
-
-		await api.sendMessage({
-			body: response,
-			attachment: fs.createReadStream(filePath)
-		}, event.threadID, event.messageID);
-
-		fs.unlinkSync(filePath); // delete the video after sending the message
-
-		if (event.body && event.body.toLowerCase().includes('owner')) {
-			api.setMessageReaction('😽', event.messageID, (err) => {}, true);
-		}
-
-	} catch (error) {
-		console.error('Error in owner command:', error);
-		return api.sendMessage('An error occurred while processing the command.', event.threadID);
-	}
+  try {
+    if (OWNER.avatar && api && api.sendMessage) {
+      await api.sendMessage({
+        body: messageText,
+        attachment: (await global.utils?.getStream?.(OWNER.avatar)) || OWNER.avatar
+      }, event.threadID, event.messageID);
+    } else if (message && typeof message.reply === "function") {
+      return message.reply(messageText);
+    } else if (api && api.sendMessage) {
+      return api.sendMessage(messageText, event.threadID);
+    } else {
+      return;
+    }
+  } catch (err) {
+    if (message && typeof message.reply === "function") return message.reply(messageText);
+    if (api && api.sendMessage) return api.sendMessage(messageText, event.threadID);
+    console.error("owner command error:", err);
+  }
 };
