@@ -16,7 +16,7 @@ const OWNER = {
     github: "https://github.com/mojin3348",
     facebook: "https://www.facebook.com/61577110900436"
   },
-  avatar: "https://ibb.co/JWg5pHST.jpeg"
+  avatar: "https://i.imgur.com/M6iTuKn.jpeg"
 };
 
 function formatSocials(s) {
