@@ -4,10 +4,9 @@ const path = require('path');
 
 module.exports.config = {
   name: "owner",
-  version: "2.0.0",
-  credit: "ARI/AJ",
+  version: "2.1.0",
   role: 0,
-  description: "Cool & stylish owner info card with frame",
+  description: "owner info",
   cooldown: 5,
   aliases: ["ownerinfo", "botowner"]
 };
@@ -16,13 +15,22 @@ module.exports.run = async ({ api, event }) => {
   try {
     const outPath = path.join(__dirname, 'temp_owner.png');
 
-    // Register premium-looking fonts
-    registerFont(path.join(__dirname, 'fonts', 'BebasNeue-Regular.ttf'), { family: 'Bebas' });
-    registerFont(path.join(__dirname, 'fonts', 'Poppins-Bold.ttf'), { family: 'Poppins' });
-    registerFont(path.join(__dirname, 'fonts', 'Lobster-Regular.ttf'), { family: 'Lobster' });
+    // Try to load fonts, but fallback if missing
+    const fontsPath = path.join(__dirname, 'fonts');
+    const safeFontLoad = (file, family) => {
+      try {
+        const fontPath = path.join(fontsPath, file);
+        if (fs.existsSync(fontPath)) {
+          registerFont(fontPath, { family });
+        }
+      } catch (e) {}
+    };
+    safeFontLoad('BebasNeue-Regular.ttf', 'Bebas');
+    safeFontLoad('Poppins-Bold.ttf', 'Poppins');
+    safeFontLoad('Lobster-Regular.ttf', 'Lobster');
 
     const owner = {
-      name: "ARI",
+      name: "AJ Chicano",
       title: "Autobot Owner",
       bio: "💻 Coder • 🎨 Creator • ⚡ Always Online",
       avatarUrl: "https://i.imgur.com/HvNZezn.png"
@@ -33,7 +41,7 @@ module.exports.run = async ({ api, event }) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // 🔹 Background Gradient with glow
+    // Background gradient
     const grad = ctx.createLinearGradient(0, 0, width, height);
     grad.addColorStop(0, '#0f2027');
     grad.addColorStop(0.5, '#203a43');
@@ -41,7 +49,7 @@ module.exports.run = async ({ api, event }) => {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
 
-    // 🔹 Starry effect
+    // Star effect
     ctx.globalAlpha = 0.05;
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 600; i++) {
@@ -49,7 +57,7 @@ module.exports.run = async ({ api, event }) => {
     }
     ctx.globalAlpha = 1;
 
-    // 🔹 Main frame with soft glow
+    // Frame
     ctx.save();
     ctx.shadowColor = 'rgba(0, 255, 200, 0.3)';
     ctx.shadowBlur = 25;
@@ -58,12 +66,12 @@ module.exports.run = async ({ api, event }) => {
     ctx.fill();
     ctx.restore();
 
-    // 🔹 Avatar circle with neon border
+    // Avatar
     const avatarSize = 230;
     const avatarX = 80;
     const avatarY = 80;
 
-    if (owner.avatarUrl) {
+    try {
       const avatarImg = await loadImage(owner.avatarUrl);
       ctx.save();
       ctx.beginPath();
@@ -72,8 +80,20 @@ module.exports.run = async ({ api, event }) => {
       ctx.clip();
       ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
       ctx.restore();
+    } catch (e) {
+      // Fallback avatar circle
+      ctx.fillStyle = '#00ffc6';
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#00322b';
+      ctx.font = 'bold 60px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(owner.name.charAt(0), avatarX + avatarSize / 2, avatarY + avatarSize / 2);
     }
 
+    // Avatar neon border
     ctx.lineWidth = 6;
     ctx.strokeStyle = '#00ffc6';
     ctx.shadowColor = '#00ffc6';
@@ -83,23 +103,23 @@ module.exports.run = async ({ api, event }) => {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // 🔹 Name & Title
+    // Name & Title
     const textX = avatarX + avatarSize + 60;
     ctx.fillStyle = '#ffffff';
-    ctx.font = '70px Bebas';
+    ctx.font = '70px Bebas, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(owner.name, textX, avatarY + 80);
 
     ctx.fillStyle = '#00ffc6';
-    ctx.font = '28px Poppins';
+    ctx.font = '28px Poppins, sans-serif';
     ctx.fillText(owner.title, textX, avatarY + 120);
 
-    // 🔹 Bio with word-wrap
+    // Bio
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = '22px Poppins';
+    ctx.font = '22px Poppins, sans-serif';
     wrapText(ctx, owner.bio, textX, avatarY + 170, 500, 30);
 
-    // 🔹 Bottom glow bar
+    // Glow bar
     const glowGrad = ctx.createLinearGradient(0, height - 10, width, height);
     glowGrad.addColorStop(0, 'transparent');
     glowGrad.addColorStop(0.5, 'rgba(0,255,198,0.5)');
@@ -116,11 +136,11 @@ module.exports.run = async ({ api, event }) => {
       attachment: fs.createReadStream(outPath)
     }, event.threadID);
 
-    setTimeout(() => { fs.unlinkSync(outPath); }, 5000);
+    setTimeout(() => { try { fs.unlinkSync(outPath); } catch (e) {} }, 5000);
 
   } catch (err) {
     console.error(err);
-    await api.sendMessage("❌ Error generating owner card.", event.threadID);
+    await api.sendMessage("❌ Error generating owner card (check console log).", event.threadID);
   }
 };
 
