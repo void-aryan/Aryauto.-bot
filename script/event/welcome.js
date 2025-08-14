@@ -2,6 +2,15 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
+module.exports.config = {
+    name: "welcome",
+    version: "3.1.0",
+    role: 0,
+    description: "Welcome new members with premium design",
+    credits: "ARI",
+    hasEvent: true
+};
+
 // Configuration
 const API_BASE = "https://kaiz-apis.gleeze.com/api/welcomecard";
 
