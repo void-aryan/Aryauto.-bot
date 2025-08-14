@@ -4,13 +4,14 @@ const axios = require('axios');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
-  name: "welcome",
+  name: "welcome", 
   version: "1.0.0",
   role: 0,
+  hasPermission: 0,
   eventType: ["log:subscribe"],
   hasEvent: true,
   credits: "ARI",
-  description: "Sends a welcome image when a new member joins"
+  description: "Welcome image generator for new members"
 };
 
 async function getAvatar(userID) {
@@ -58,18 +59,16 @@ async function createWelcomeCard({ name, avatarBuffer, groupName }) {
     ctx.restore();
   }
 
-  // Text: Welcome
+  // Texts
   ctx.font = 'bold 80px Arial';
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   ctx.fillText("WELCOME", WIDTH / 2, HEIGHT / 2 + 200);
 
-  // Text: Name
   ctx.font = 'bold 60px Arial';
   ctx.fillStyle = "#FFD700";
   ctx.fillText(name, WIDTH / 2, HEIGHT / 2 + 260);
 
-  // Text: Group name
   ctx.font = '30px Arial';
   ctx.fillStyle = "#fff";
   ctx.fillText(`to ${groupName}`, WIDTH / 2, HEIGHT / 2 + 300);
@@ -78,9 +77,9 @@ async function createWelcomeCard({ name, avatarBuffer, groupName }) {
 }
 
 module.exports.onEvent = async function ({ api, event }) {
-  try {
-    if (event.logMessageType !== "log:subscribe") return;
+  if (event.logMessageType !== "log:subscribe") return;
 
+  try {
     const threadID = event.threadID;
     const threadInfo = await api.getThreadInfo(threadID);
     const groupName = threadInfo?.name || "our group";
