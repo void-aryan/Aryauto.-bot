@@ -3,7 +3,7 @@ const path = require("path");
 const axios = require("axios");
 
 module.exports.config = {
-  name: "welcome-kaiz",
+  name: "welcome",
   version: "1.0.1",
   role: 0,
   credits: "ARI",
