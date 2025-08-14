@@ -26,7 +26,7 @@ module.exports.run = async ({ api, event, args }) => {
       title: "Autobot Owner",
       bio: "Coder • Creator • Always online",
       contact: "Not shown", 
-      avatarUrl: "https://i.imgur.com/HvNZezn.jpeg"
+      avatarUrl: "https://files.catbox.moe/ajrxck.jpeg"
     };
 
     const width = 1200;
