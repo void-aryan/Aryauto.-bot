@@ -5,11 +5,11 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
     name: "welcome",
-    version: "1.0.0",
+    version: "1.2.0",
     hasEvent: true,
     eventType: ["log:subscribe"],
     credits: "ARI",
-    description: "Welcome image using local Canvas"
+    description: "Welcome image with built-in professional background"
 };
 
 async function getAvatar(userID) {
@@ -30,15 +30,35 @@ async function createWelcomeCard({ name, avatarBuffer, groupName, memberCount })
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext('2d');
 
-    // Gradient background
     const gradient = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-    gradient.addColorStop(0, "#1a2a6c");
-    gradient.addColorStop(0.5, "#b21f1f");
-    gradient.addColorStop(1, "#fdbb2d");
+    gradient.addColorStop(0, "#0f2027");
+    gradient.addColorStop(0.5, "#203a43");
+    gradient.addColorStop(1, "#2c5364");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Avatar circle
+    ctx.globalAlpha = 0.15;
+    for (let i = 0; i < WIDTH; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(0, i);
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = "#FFD700";
+    ctx.strokeRect(0, 0, WIDTH, HEIGHT);
+
+    ctx.beginPath();
+    ctx.arc(WIDTH / 2, HEIGHT / 2 - 50, 160, 0, Math.PI * 2);
+    ctx.shadowColor = "#FFD700";
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = "rgba(255, 215, 0, 0.2)";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
     if (avatarBuffer) {
         const avatar = await loadImage(avatarBuffer);
         const size = 300;
@@ -51,18 +71,21 @@ async function createWelcomeCard({ name, avatarBuffer, groupName, memberCount })
         ctx.restore();
     }
 
-    ctx.font = 'bold 80px Arial';
-    ctx.fillStyle = "#ffffff";
+    function drawShadowText(text, x, y, font, color, shadowColor) {
+        ctx.font = font;
+        ctx.fillStyle = shadowColor;
+        ctx.fillText(text, x + 3, y + 3);
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+    }
+
     ctx.textAlign = "center";
-    ctx.fillText("WELCOME", WIDTH / 2, HEIGHT / 2 + 180);
 
-    ctx.font = 'bold 60px Arial';
-    ctx.fillStyle = "#FFD700";
-    ctx.fillText(name, WIDTH / 2, HEIGHT / 2 + 240);
+    drawShadowText("WELCOME", WIDTH / 2, HEIGHT / 2 + 180, 'bold 80px Arial', "#ffffff", "#000000");
 
-    ctx.font = '30px Arial';
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(`to ${groupName} • Member #${memberCount}`, WIDTH / 2, HEIGHT / 2 + 280);
+    drawShadowText(name, WIDTH / 2, HEIGHT / 2 + 240, 'bold 60px Arial', "#FFD700", "#000000");
+
+    drawShadowText(`to ${groupName} • Member #${memberCount}`, WIDTH / 2, HEIGHT / 2 + 280, '30px Arial', "#ffffff", "#000000");
 
     return canvas.toBuffer();
 }
@@ -74,28 +97,24 @@ module.exports.handleEvent = async function ({ api, event }) {
         const addedParticipants = event.logMessageData.addedParticipants;
         const senderID = addedParticipants[0].userFbId;
 
-        // Get user info
         let name = await api.getUserInfo(senderID).then(info => info[senderID].name);
         if (name.length > 15) {
             name = name.substring(0, 12) + '...';
         }
 
-        // Get group info
         const groupInfo = await api.getThreadInfo(event.threadID);
         const groupName = groupInfo.threadName || "this group";
         const memberCount = groupInfo.participantIDs.length;
 
-        // Get avatar
         const avatarBuffer = await getAvatar(senderID);
 
-        // Create welcome card
         const cardBuffer = await createWelcomeCard({ name, avatarBuffer, groupName, memberCount });
 
-        // Save file temporarily
-        const fileName = path.join(__dirname, 'cache', `welcome_${senderID}.png`);
-        if (!fs.existsSync(path.dirname(fileName))) {
-            fs.mkdirSync(path.dirname(fileName), { recursive: true });
+        const cacheDir = path.join(__dirname, 'cache');
+        if (!fs.existsSync(cacheDir)) {
+            fs.mkdirSync(cacheDir, { recursive: true });
         }
+        const fileName = path.join(cacheDir, `welcome_${senderID}.png`);
         fs.writeFileSync(fileName, cardBuffer);
 
         api.sendMessage({
