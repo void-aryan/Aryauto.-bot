@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "greethourly",
-  version: "1.0.0",
+  version: "1.0.2",
   role: 0,
   aliases: ["greetnow"],
-  credits: "AJ/ARI",
+  credits: "ARI + AJ",
   cooldown: 3,
   description: "Hourly greeting event (Asia/Manila) without manual thread IDs",
   hasPrefix: false
@@ -11,7 +11,7 @@ module.exports.config = {
 
 const TIMEZONE = "Asia/Manila";
 const SEND_AT_MINUTE = 0; 
-const SEND_AT_SECOND = 0; 
+const SEND_AT_SECOND = 0;
 
 const GREET_BANK = {
   morning: [
@@ -42,6 +42,7 @@ const GREET_BANK = {
   ]
 };
 
+// Helpers
 function getPartOfDay(hour) {
   if (hour >= 5 && hour < 11) return "morning";
   if (hour >= 11 && hour < 13) return "noon";
@@ -112,6 +113,7 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// Scheduler
 function startHourlyScheduler(api) {
   const now = getDatePH();
   const next = new Date(now);
@@ -130,11 +132,15 @@ function startHourlyScheduler(api) {
   }, msUntilNext);
 }
 
-module.exports.onLoad = async function({ api }) {
+module.exports.handleEvent = function({ api }) {
+  return;
+};
+
+module.exports.onLoad = function({ api }) {
   startHourlyScheduler(api);
 };
 
-module.exports.run = async function ({ api, event }) {
+module.exports.run = async function({ api, event }) {
   await broadcast(api);
   api.sendMessage("✅ Greetings sent to all active threads!", event.threadID, event.messageID);
 };
