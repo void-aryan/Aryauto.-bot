@@ -4,10 +4,12 @@ const axios = require("axios");
 
 module.exports.config = {
   name: "welcome",
-  version: "1.0.2",
+  version: "1.0.3",
   role: 0,
   credits: "ARI",
   description: "Welcome new members",
+  eventType: ["log:subscribe"],
+  hasPermssion: 0,
   hasEvent: true
 };
 
@@ -47,7 +49,7 @@ async function downloadImage(url, filePath) {
 
 module.exports.handleEvent = async function ({ api, event }) {
   try {
-    if (event.logMessageType !== "log:subscribe") return;
+    if (!event || event.logMessageType !== "log:subscribe") return;
 
     const threadID = event.threadID;
     const added = event.logMessageData?.addedParticipants || [];
@@ -79,8 +81,8 @@ module.exports.handleEvent = async function ({ api, event }) {
     const outPath = path.join(CACHE_DIR, `welcome_${threadID}.jpg`);
     await downloadImage(kaizUrl, outPath);
 
-    let mentionArray = [];
-    let welcomeNames = [];
+    const mentionArray = [];
+    const welcomeNames = [];
 
     for (const p of added) {
       const uid = p.userFbId || p.userId || p.userID || p.id;
@@ -108,9 +110,9 @@ module.exports.handleEvent = async function ({ api, event }) {
       threadID
     );
   } catch (err) {
-    console.error("welcome error:", err.message || err);
+    console.error("welcome error:", err);
   }
 };
 
-// For compatibility
+// fallback run
 module.exports.run = async function () {};
