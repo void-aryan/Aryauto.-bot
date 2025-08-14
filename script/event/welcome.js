@@ -1,118 +1,128 @@
-const fs = require("fs");
-const path = require("path");
-const axios = require("axios");
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
-  name: "welcome",
-  version: "1.0.3",
-  role: 0,
-  credits: "ARI",
-  description: "Welcome new members",
-  eventType: ["log:subscribe"],
-  hasPermssion: 0,
-  hasEvent: true
+    name: "welcome",
+    version: "3.3.0",
+    role: 0,
+    description: "Welcome new members",
+    credits: "ARI",
+    hasEvent: true
 };
 
-const CACHE_DIR = path.join(__dirname, "cache");
-const DEFAULT_BG = "https://i.imgur.com/iKekhCb.jpeg";
+try {
+    registerFont(path.join(__dirname, "fonts", "Poppins-Bold.ttf"), { family: "Poppins" });
+} catch { /* ignore if missing */ }
 
-module.exports.onLoad = () => {
-  if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
-};
-
-function buildKaizUrl({ background, username, groupName, memberCount, avatarUrl }) {
-  const base = "https://kaiz-apis.gleeze.com/api/welcomecard";
-  const q = new URLSearchParams({
-    background: background || DEFAULT_BG,
-    text1: username || "New Member",
-    text2: groupName || "Our Group",
-    text3: String(memberCount || 0),
-    avatar: avatarUrl || ""
-  });
-  return `${base}?${q.toString()}`;
+async function getAvatar(userID, api) {
+    const defaultAvatar = "https://i.imgur.com/tfHIYHO.jpeg";
+    try {
+        const info = await api.getUserInfo(userID); 
+        const url = info[userID]?.profilePic || `https://graph.facebook.com/${userID}/picture?type=large&width=512&height=512`;
+        const res = await axios.get(url, { responseType: 'arraybuffer', maxRedirects: 5 });
+        return Buffer.from(res.data);
+    } catch {
+        const fallback = await axios.get(defaultAvatar, { responseType: 'arraybuffer' });
+        return Buffer.from(fallback.data);
+    }
 }
 
-function fbAvatarUrl(uid) {
-  return `https://graph.facebook.com/${encodeURIComponent(uid)}/picture?height=512&width=512`;
-}
-
-async function downloadImage(url, filePath) {
-  const res = await axios.get(url, { responseType: "stream" });
-  await new Promise((resolve, reject) => {
-    const w = fs.createWriteStream(filePath);
-    res.data.pipe(w);
-    w.on("finish", resolve);
-    w.on("error", reject);
-  });
-  return filePath;
+function neonColor() {
+    const colors = ["#00ffea", "#ff00ff", "#ff0066", "#00ffff", "#8a00ff"];
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
 module.exports.handleEvent = async function ({ api, event }) {
-  try {
-    if (!event || event.logMessageType !== "log:subscribe") return;
+    if (event.logMessageType !== "log:subscribe") return;
+    const addedParticipants = event.logMessageData?.addedParticipants;
+    if (!addedParticipants?.length) return;
 
-    const threadID = event.threadID;
-    const added = event.logMessageData?.addedParticipants || [];
-    if (!added.length) return;
+    const groupInfo = await api.getThreadInfo(event.threadID);
+    const groupName = groupInfo.threadName || "this group";
 
-    const tInfo = await api.getThreadInfo(threadID);
-    const groupName = tInfo?.name || "This Chat";
-    const memberCount = Array.isArray(tInfo?.participantIDs)
-      ? tInfo.participantIDs.length
-      : tInfo?.participantCount || 0;
+    const width = 900, height = 500;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
 
-    const firstUserId = added[0]?.userFbId || added[0]?.userId || added[0]?.userID || added[0]?.id;
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#0d0d0d");
+    gradient.addColorStop(1, "#1a1a1a");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
 
-    let firstUsername = "New Member";
-    try {
-      const info = await api.getUserInfo(firstUserId);
-      firstUsername = info?.[firstUserId]?.name || firstUsername;
-    } catch (_) {}
-
-    const avatarUrl = fbAvatarUrl(firstUserId);
-    const kaizUrl = buildKaizUrl({
-      background: DEFAULT_BG,
-      username: firstUsername,
-      groupName,
-      memberCount,
-      avatarUrl
-    });
-
-    const outPath = path.join(CACHE_DIR, `welcome_${threadID}.jpg`);
-    await downloadImage(kaizUrl, outPath);
-
-    const mentionArray = [];
-    const welcomeNames = [];
-
-    for (const p of added) {
-      const uid = p.userFbId || p.userId || p.userID || p.id;
-      if (!uid) continue;
-      let name = "New Member";
-      try {
-        const info = await api.getUserInfo(uid);
-        name = info?.[uid]?.name || name;
-      } catch (_) {}
-      welcomeNames.push(name);
-      mentionArray.push({ id: uid, tag: name });
+    // Cyber neon particles
+    for (let i = 0; i < 50; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = neonColor() + Math.floor(Math.random() * 80).toString(16);
+        ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 3, 0, Math.PI * 2);
+        ctx.fill();
     }
 
-    const msg =
-      `👋 Welcome ${welcomeNames.join(", ")}!\n` +
-      `You’re now part of "${groupName}" 🎉\n` +
-      `Member count: ${memberCount}`;
+    // Draw avatars with neon outline
+    const avatarSize = 85;
+    const avatarSpacing = 20;
+    const totalWidth = addedParticipants.length * (avatarSize * 2 + avatarSpacing) - avatarSpacing;
+    let startX = width / 2 - totalWidth / 2;
 
-    await api.sendMessage(
-      {
-        body: msg,
-        attachment: fs.createReadStream(outPath),
-        mentions: mentionArray
-      },
-      threadID
-    );
-  } catch (err) {
-    console.error("welcome error:", err);
-  }
+    // Fetch user info for all participants at once
+    const userIDs = addedParticipants.map(p => p.userFbId || p.userId || p.id);
+    const usersInfo = await api.getUserInfo(userIDs);
+
+    const names = [];
+
+    for (const participant of addedParticipants) {
+        const userID = participant.userFbId || participant.userId || participant.id;
+        if (!userID) continue;
+
+        const name = usersInfo[userID]?.name || "New Member";
+        names.push(name);
+
+        const avatarBuffer = await getAvatar(userID, api);
+        const avatarImg = await loadImage(avatarBuffer);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatarImg, startX, height / 2 - 125, avatarSize * 2, avatarSize * 2);
+        ctx.restore();
+
+        // Neon outline
+        ctx.strokeStyle = neonColor();
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize, 0, Math.PI * 2);
+        ctx.stroke();
+
+        startX += avatarSize * 2 + avatarSpacing;
+    }
+
+    // Neon-glow text
+    ctx.fillStyle = "#00fff7";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "#00fff7";
+    ctx.shadowBlur = 15;
+
+    ctx.font = "bold 52px Poppins, Sans-serif";
+    ctx.fillText(`Welcome, ${names.join(", ")}!`, width / 2, height - 140);
+
+    ctx.font = "32px Poppins, Sans-serif";
+    ctx.fillText(`to ${groupName}`, width / 2, height - 90);
+
+    ctx.font = "22px Poppins, Sans-serif";
+    ctx.fillText("We’re glad you joined us", width / 2, height - 50);
+
+    const cacheDir = path.join(__dirname, 'cache');
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+    const imagePath = path.join(cacheDir, `welcome_${Date.now()}.png`);
+    fs.writeFileSync(imagePath, canvas.toBuffer("image/png"));
+
+    await api.sendMessage({
+        body: `🎉 Everyone welcome ${names.join(", ")} to ${groupName}!`,
+        attachment: fs.createReadStream(imagePath)
+    }, event.threadID);
+
+    fs.unlinkSync(imagePath);
 };
-
-// fallback run
-module.exports.run = async function () {};
