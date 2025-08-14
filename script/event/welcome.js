@@ -6,7 +6,10 @@ const path = require('path');
 
 module.exports.config = {
     name: "welcome",
-    version: "2.0.0",
+    version: "2.0.1",
+    role: 0,
+    description: "Welcome new members with animated GIF",
+    credits: "ARI",
     hasEvent: true
 };
 
@@ -29,62 +32,75 @@ module.exports.handleEvent = async function ({ api, event }) {
     if (event.logMessageType !== "log:subscribe") return;
 
     const addedParticipants = event.logMessageData.addedParticipants;
-    const senderID = addedParticipants[0].userFbId;
-    let name = await api.getUserInfo(senderID).then(info => info[senderID].name);
+    if (!addedParticipants || addedParticipants.length === 0) return;
+
+    const senderID = addedParticipants[0].userFbId || addedParticipants[0].userId;
+    if (!senderID) return;
+
+    const userInfo = await api.getUserInfo(senderID);
+    const name = userInfo[senderID]?.name || "New Member";
 
     const groupInfo = await api.getThreadInfo(event.threadID);
     const groupName = groupInfo.threadName || "this group";
 
     const avatarBuffer = await getAvatar(senderID);
 
+    // Ensure cache folder exists
+    const cacheDir = path.join(__dirname, 'cache');
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
     const width = 800, height = 400;
     const encoder = new GIFEncoder(width, height);
-    const gifPath = path.join(__dirname, 'cache', 'welcome.gif');
-    if (!fs.existsSync(path.join(__dirname, 'cache'))) fs.mkdirSync(path.join(__dirname, 'cache'));
-
-    const stream = encoder.createReadStream().pipe(fs.createWriteStream(gifPath));
-    encoder.start();
-    encoder.setRepeat(0); 
-    encoder.setDelay(50); 
-    encoder.setQuality(10);
+    const gifPath = path.join(cacheDir, 'welcome.gif');
 
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-
     const avatarImg = await loadImage(avatarBuffer);
 
+    const stream = encoder.createReadStream().pipe(fs.createWriteStream(gifPath));
+
+    encoder.start();
+    encoder.setRepeat(0);
+    encoder.setDelay(50);
+    encoder.setQuality(10);
+
     for (let frame = 0; frame < 30; frame++) {
+        ctx.clearRect(0, 0, width, height);
+
+        // Background gradient
         const gradient = ctx.createLinearGradient(0, 0, width, height);
         gradient.addColorStop(0, `hsl(${(frame * 10) % 360}, 70%, 30%)`);
         gradient.addColorStop(1, `hsl(${(frame * 10 + 120) % 360}, 70%, 30%)`);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
 
+        // Sparkles
         for (let i = 0; i < 20; i++) {
             ctx.fillStyle = `rgba(255,255,255,${Math.random()})`;
             ctx.beginPath();
             ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        
+
+        // Avatar glow
         const glowSize = 150 + Math.sin(frame / 3) * 10;
         ctx.save();
         ctx.shadowColor = `hsl(${(frame * 10) % 360}, 100%, 60%)`;
         ctx.shadowBlur = 30;
         ctx.beginPath();
         ctx.arc(width / 2, height / 2 - 30, glowSize / 2, 0, Math.PI * 2);
-        ctx.closePath();
         ctx.fill();
         ctx.restore();
 
+        // Avatar
         ctx.save();
         ctx.beginPath();
         ctx.arc(width / 2, height / 2 - 30, 70, 0, Math.PI * 2);
-        ctx.closePath();
         ctx.clip();
         ctx.drawImage(avatarImg, width / 2 - 70, height / 2 - 100, 140, 140);
         ctx.restore();
 
+        // Welcome text
         ctx.fillStyle = "white";
         ctx.font = "bold 40px Sans-serif";
         ctx.textAlign = "center";
@@ -99,12 +115,12 @@ module.exports.handleEvent = async function ({ api, event }) {
         encoder.addFrame(ctx);
     }
 
-    encoder.finish();
-
     stream.on('finish', () => {
         api.sendMessage({
             body: `🎉 Everyone welcome ${name} to ${groupName}!`,
             attachment: fs.createReadStream(gifPath)
         }, event.threadID, () => fs.unlinkSync(gifPath));
     });
+
+    encoder.finish();
 };
