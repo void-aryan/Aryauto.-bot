@@ -10,6 +10,7 @@ module.exports.config = {
     role: 0,
     description: "Welcome new members with animated GIF",
     credits: "ARI",
+    hasEvent: true
 };
 
 async function getAvatar(userID) {
