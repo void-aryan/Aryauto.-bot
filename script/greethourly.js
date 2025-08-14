@@ -1,55 +1,39 @@
 module.exports.config = {
   name: "greethourly",
-  version: "1.0.1",
+  version: "1.2.0",
   role: 0,
-  aliases: ["greetnow"],
   credits: "ARI + AJ",
-  cooldown: 3,
-  description: "Hourly greeting event (Asia/Manila) without manual thread IDs",
+  description: "Automatic greetings at specific times (Asia/Manila) with custom messages",
   hasPrefix: false
 };
 
 const TIMEZONE = "Asia/Manila";
-const SEND_AT_MINUTE = 0; // Minute to send (0–59)
-const SEND_AT_SECOND = 0; // Second to send (0–59)
 
-const GREET_BANK = {
-  morning: [
-    "Good morning! 🌞 Simulan natin ang araw na productive!",
-    "Magandang umaga! Kape muna tayo? ☕",
-    "Rise and shine! Panibagong laban 💪",
-    "Umaga na! Keep grinding, keep smiling. ✨"
-  ],
-  noon: [
-    "Tanghali na! 🍽️ Huwag kalimutang kumain.",
-    "Happy lunch! Refill energy muna. 🔋",
+// Schedule in 24-hour format
+const SCHEDULES = [
+  { hour: 7, messages: [
+    "🌞 Good morning! Panibagong araw, panibagong oportunidad!",
+    "Magandang umaga! Simulan natin ang araw ng may ngiti. 😊",
+    "Rise and shine! Let's make today productive 💪",
+    "Umaga na! Huwag kalimutan mag-breakfast. 🍳"
+  ]},
+  { hour: 12, messages: [
+    "🍽️ Tanghali na! Kumain ka muna para may energy.",
+    "Happy lunch! Refill muna ng energy. 🔋",
     "Magandang tanghali! One step closer na sa goals mo. 🚀"
-  ],
-  afternoon: [
-    "Good afternoon! Keep the momentum going! ⚡",
-    "Hapon na! Stretch ka muna saglit. 🧘",
-    "Still hustling? Respect. 🙌"
-  ],
-  evening: [
-    "Good evening! 🌙 Wrap up ka na ba?",
-    "Gabi na! Time to cool down. ❄️",
-    "Magandang gabi! Pa-hydrate ka ha. 💧"
-  ],
-  night: [
-    "Late night grind? Kaya mo 'yan! 🌙",
-    "Gabi na talaga… pahinga ka rin. 😴",
-    "Keep it chill. See you tomorrow! ✌️"
-  ]
-};
-
-// Helpers
-function getPartOfDay(hour) {
-  if (hour >= 5 && hour < 11) return "morning";
-  if (hour >= 11 && hour < 13) return "noon";
-  if (hour >= 13 && hour < 17) return "afternoon";
-  if (hour >= 17 && hour < 22) return "evening";
-  return "night";
-}
+  ]},
+  { hour: 18, messages: [
+    "🌆 Good evening! Konting push pa para sa goals mo!",
+    "Magandang gabi! Pahinga ka rin ha. 💧",
+    "Hapon na! Time to slow down and relax. 🛋️"
+  ]},
+  { hour: 22, messages: [
+    "🌙 Good night! Matulog ka na para fresh bukas.",
+    "Late night na! Pahinga ka na para makabawi ng energy. 😴",
+    "Good night! Kita-kits bukas para sa panibagong laban. ✨",
+    "tulog na, tama na kaka-relapse."
+  ]}
+];
 
 function getDatePH() {
   return new Date(new Date().toLocaleString("en-US", { timeZone: TIMEZONE }));
@@ -68,11 +52,9 @@ function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function buildMessage() {
+function buildMessage(messages) {
   const now = getDatePH();
-  const hour = now.getHours();
-  const part = getPartOfDay(hour);
-  const base = pick(GREET_BANK[part]);
+  const base = pick(messages);
   const timeStr = formatTimePH(now);
   const weekday = now.toLocaleDateString("en-PH", { timeZone: TIMEZONE, weekday: "long" });
   return `${base}\n🕒 ${timeStr} • ${weekday}`;
@@ -90,8 +72,8 @@ async function getActiveThreads(api) {
   }
 }
 
-async function broadcast(api) {
-  const message = buildMessage();
+async function broadcast(api, messages) {
+  const message = buildMessage(messages);
   const threads = await getActiveThreads(api);
 
   if (!threads.length) {
@@ -114,37 +96,47 @@ function sleep(ms) {
 }
 
 let schedulerStarted = false;
-function startHourlyScheduler(api) {
+function startScheduler(api) {
   if (schedulerStarted) return;
   schedulerStarted = true;
 
-  const now = getDatePH();
-  const next = new Date(now);
-  next.setMinutes(SEND_AT_MINUTE, SEND_AT_SECOND, 0);
+  function scheduleNext() {
+    const now = getDatePH();
+    let nextSchedule = null;
 
-  if (next <= now) next.setHours(next.getHours() + 1);
+    for (const sched of SCHEDULES) {
+      const target = new Date(now);
+      target.setHours(sched.hour, 0, 0, 0);
+      if (target > now) {
+        nextSchedule = { time: target, messages: sched.messages };
+        break;
+      }
+    }
 
-  const msUntilNext = next - now;
-  console.log(`[greethourly] First send at ${next.toLocaleString("en-PH", { timeZone: TIMEZONE })}`);
+    if (!nextSchedule) {
+      const target = new Date(now);
+      target.setDate(now.getDate() + 1);
+      target.setHours(SCHEDULES[0].hour, 0, 0, 0);
+      nextSchedule = { time: target, messages: SCHEDULES[0].messages };
+    }
 
-  setTimeout(async () => {
-    await broadcast(api);
-    setInterval(async () => {
-      await broadcast(api);
-    }, 60 * 60 * 1000);
-  }, msUntilNext);
+    const msUntilNext = nextSchedule.time - now;
+    console.log(`[greethourly] Next greet at ${nextSchedule.time.toLocaleString("en-PH", { timeZone: TIMEZONE })}`);
+
+    setTimeout(async () => {
+      await broadcast(api, nextSchedule.messages);
+      scheduleNext(); 
+    }, msUntilNext);
+  }
+
+  scheduleNext();
 }
 
-module.exports.handleEvent = function() {
-  return;
-};
+// No event & no manual command
+module.exports.handleEvent = function () { return; };
+module.exports.run = function () { return; };
 
-module.exports.onLoad = function({ api }) {
-  startHourlyScheduler(api);
+// Auto start
+module.exports.onLoad = function ({ api }) {
+  startScheduler(api);
 };
-
-module.exports.run = async function({ api, event }) {
-  await broadcast(api);
-  api.sendMessage("✅ Greetings sent to all active threads!", event.threadID, event.messageID);
-};
-           
