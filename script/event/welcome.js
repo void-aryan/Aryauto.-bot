@@ -8,7 +8,7 @@ module.exports.config = {
     version: "3.0.0",
     role: 0,
     description: "Welcome new members with premium design",
-    credits: "Rewritten by ChatGPT",
+    credits: "ARI",
     hasEvent: true
 };
 
