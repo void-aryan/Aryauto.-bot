@@ -1,5 +1,3 @@
-// Owner command with stylish fonts and a clean card layout (No Social Media / No Contact) // Works in most Node.js chat-bot frameworks that pass { api, event, args } to run()
-
 module.exports.config = { name: "owner", version: "2.0.0", role: 0, aliases: ["creator", "dev", "founder"], credits: "ARI", cooldown: 3 };
 
 const OWNER = { handle: "ARI", aka: "Ari", title: "AutoBot Owner & Dev", tag: "@ari", quote: "Ship fast. Learn faster.", timezone: "Asia/Manila" };
