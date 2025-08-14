@@ -7,9 +7,6 @@ const path = require('path');
 module.exports.config = {
     name: "welcome",
     version: "2.0.0",
-    role: 0,
-    description: "Welcome new members with animated GIF",
-    credits: "ARI",
     hasEvent: true
 };
 
