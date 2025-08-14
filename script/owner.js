@@ -4,9 +4,9 @@ const path = require('path');
 
 module.exports.config = {
   name: "owner",
-  version: "2.1.0",
+  version: "3.0.0",
   role: 0,
-  description: "owner info",
+  description: "Owner info (Futuristic Design)",
   cooldown: 5,
   aliases: ["ownerinfo", "botowner"]
 };
@@ -15,7 +15,7 @@ module.exports.run = async ({ api, event }) => {
   try {
     const outPath = path.join(__dirname, 'temp_owner.png');
 
-    // Try to load fonts, but fallback if missing
+    // Load fonts if available
     const fontsPath = path.join(__dirname, 'fonts');
     const safeFontLoad = (file, family) => {
       try {
@@ -23,11 +23,10 @@ module.exports.run = async ({ api, event }) => {
         if (fs.existsSync(fontPath)) {
           registerFont(fontPath, { family });
         }
-      } catch (e) {}
+      } catch {}
     };
     safeFontLoad('BebasNeue-Regular.ttf', 'Bebas');
     safeFontLoad('Poppins-Bold.ttf', 'Poppins');
-    safeFontLoad('Lobster-Regular.ttf', 'Lobster');
 
     const owner = {
       name: "ARI",
@@ -36,127 +35,118 @@ module.exports.run = async ({ api, event }) => {
       avatarUrl: "https://i.imgur.com/HvNZezn.png"
     };
 
-    const width = 1200;
-    const height = 675;
+    const width = 1200, height = 675;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Background gradient
+    // Background - Cyberpunk gradient
     const grad = ctx.createLinearGradient(0, 0, width, height);
-    grad.addColorStop(0, '#0f2027');
-    grad.addColorStop(0.5, '#203a43');
-    grad.addColorStop(1, '#2c5364');
+    grad.addColorStop(0, '#0a0f1c');
+    grad.addColorStop(0.5, '#1a0933');
+    grad.addColorStop(1, '#051937');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
 
-    // Star effect
-    ctx.globalAlpha = 0.05;
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 600; i++) {
-      ctx.fillRect(Math.random() * width, Math.random() * height, 1, 1);
+    // Light streaks
+    ctx.globalAlpha = 0.15;
+    for (let i = 0; i < 5; i++) {
+      const streakGrad = ctx.createLinearGradient(0, 0, width, 0);
+      streakGrad.addColorStop(0, 'transparent');
+      streakGrad.addColorStop(0.5, i % 2 ? '#ff00ff' : '#00fff2');
+      streakGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = streakGrad;
+      ctx.fillRect(0, Math.random() * height, width, 3);
     }
     ctx.globalAlpha = 1;
 
-    // Frame
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 255, 200, 0.3)';
-    ctx.shadowBlur = 25;
-    roundRect(ctx, 30, 30, width - 60, height - 60, 25);
-    ctx.fillStyle = 'rgba(255,255,255,0.02)';
-    ctx.fill();
-    ctx.restore();
+    // Neon HUD corners
+    ctx.strokeStyle = '#00fff2';
+    ctx.shadowColor = '#00fff2';
+    ctx.shadowBlur = 15;
+    ctx.lineWidth = 4;
+
+    // Top-left
+    ctx.beginPath();
+    ctx.moveTo(40, 40); ctx.lineTo(140, 40);
+    ctx.moveTo(40, 40); ctx.lineTo(40, 140);
+    ctx.stroke();
+
+    // Bottom-right
+    ctx.beginPath();
+    ctx.moveTo(width - 40, height - 40); ctx.lineTo(width - 140, height - 40);
+    ctx.moveTo(width - 40, height - 40); ctx.lineTo(width - 40, height - 140);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
 
     // Avatar
-    const avatarSize = 230;
-    const avatarX = 80;
-    const avatarY = 80;
-
+    const avatarSize = 240;
+    const avatarX = 80, avatarY = 100;
     try {
       const avatarImg = await loadImage(owner.avatarUrl);
       ctx.save();
       ctx.beginPath();
       ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.closePath();
       ctx.clip();
       ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
       ctx.restore();
-    } catch (e) {
-      // Fallback avatar circle
-      ctx.fillStyle = '#00ffc6';
+    } catch {
+      ctx.fillStyle = '#00fff2';
       ctx.beginPath();
       ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#00322b';
-      ctx.font = 'bold 60px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(owner.name.charAt(0), avatarX + avatarSize / 2, avatarY + avatarSize / 2);
     }
 
-    // Avatar neon border
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = '#00ffc6';
-    ctx.shadowColor = '#00ffc6';
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 4, 0, Math.PI * 2);
-    ctx.stroke();
+    // Multi-layer neon ring
+    const rings = ['#00fff2', '#ff00ff', '#00fff2'];
+    rings.forEach((color, i) => {
+      ctx.beginPath();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 15;
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 6 + (i * 6), 0, Math.PI * 2);
+      ctx.stroke();
+    });
     ctx.shadowBlur = 0;
 
-    // Name & Title
+    // Owner name
     const textX = avatarX + avatarSize + 60;
     ctx.fillStyle = '#ffffff';
-    ctx.font = '70px Bebas, sans-serif';
+    ctx.font = '80px Bebas, sans-serif';
     ctx.textAlign = 'left';
+    ctx.shadowColor = '#00fff2';
+    ctx.shadowBlur = 10;
     ctx.fillText(owner.name, textX, avatarY + 80);
 
-    ctx.fillStyle = '#00ffc6';
-    ctx.font = '28px Poppins, sans-serif';
+    // Title
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ff00ff';
+    ctx.font = '30px Poppins, sans-serif';
     ctx.fillText(owner.title, textX, avatarY + 120);
 
     // Bio
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = '22px Poppins, sans-serif';
-    wrapText(ctx, owner.bio, textX, avatarY + 170, 500, 30);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = '24px Poppins, sans-serif';
+    wrapText(ctx, owner.bio, textX, avatarY + 170, 500, 32);
 
-    // Glow bar
-    const glowGrad = ctx.createLinearGradient(0, height - 10, width, height);
-    glowGrad.addColorStop(0, 'transparent');
-    glowGrad.addColorStop(0.5, 'rgba(0,255,198,0.5)');
-    glowGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGrad;
-    ctx.fillRect(0, height - 20, width, 20);
-
-    // Save image
+    // Save
     const buffer = canvas.toBuffer('image/png');
     fs.writeFileSync(outPath, buffer);
-
     await api.sendMessage({
       body: `👑 ${owner.name}\n${owner.title}`,
       attachment: fs.createReadStream(outPath)
     }, event.threadID);
 
-    setTimeout(() => { try { fs.unlinkSync(outPath); } catch (e) {} }, 5000);
+    setTimeout(() => { try { fs.unlinkSync(outPath); } catch {} }, 5000);
 
   } catch (err) {
     console.error(err);
-    await api.sendMessage("❌ Error generating owner card (check console log).", event.threadID);
+    await api.sendMessage("❌ Error generating owner card.", event.threadID);
   }
 };
 
-// Rounded rectangle
-function roundRect(ctx, x, y, w, h, r) {
-  const minr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + minr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, minr);
-  ctx.arcTo(x + w, y + h, x, y + h, minr);
-  ctx.arcTo(x, y + h, x, y, minr);
-  ctx.arcTo(x, y, x + w, y, minr);
-  ctx.closePath();
-}
-
-// Text wrap helper
+// Wrap text helper
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = text.split(' ');
   let line = '';
