@@ -30,7 +30,7 @@ module.exports.run = async ({ api, event }) => {
     safeFontLoad('Lobster-Regular.ttf', 'Lobster');
 
     const owner = {
-      name: "AJ Chicano",
+      name: "ARI",
       title: "Autobot Owner",
       bio: "💻 Coder • 🎨 Creator • ⚡ Always Online",
       avatarUrl: "https://i.imgur.com/HvNZezn.png"
