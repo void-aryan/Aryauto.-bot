@@ -4,7 +4,7 @@ const axios = require("axios");
 
 module.exports.config = {
   name: "welcome",
-  version: "1.0.1",
+  version: "1.0.2",
   role: 0,
   credits: "ARI",
   description: "Welcome new members",
@@ -13,7 +13,7 @@ module.exports.config = {
 };
 
 const CACHE_DIR = path.join(__dirname, "cache");
-const DEFAULT_BG = "https://i.imgur.com/iKekhCb.jpeg"; 
+const DEFAULT_BG = "https://i.imgur.com/iKekhCb.jpeg";
 
 module.exports.onLoad = () => {
   if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -56,9 +56,9 @@ module.exports.handleEvent = async function ({ api, event }) {
 
     const tInfo = await api.getThreadInfo(threadID);
     const groupName = tInfo?.name || "This Chat";
-    const memberCount = Array.isArray(tInfo?.participantIDs) 
-      ? tInfo.participantIDs.length 
-      : (tInfo?.participantCount || 0);
+    const memberCount = Array.isArray(tInfo?.participantIDs)
+      ? tInfo.participantIDs.length
+      : tInfo?.participantCount || 0;
 
     const firstUserId = added[0]?.userFbId || added[0]?.userId || added[0]?.userID || added[0]?.id;
 
@@ -69,7 +69,6 @@ module.exports.handleEvent = async function ({ api, event }) {
     } catch (_) {}
 
     const avatarUrl = fbAvatarUrl(firstUserId);
-
     const kaizUrl = buildKaizUrl({
       background: DEFAULT_BG,
       username: firstUsername,
@@ -87,16 +86,16 @@ module.exports.handleEvent = async function ({ api, event }) {
     for (const p of added) {
       const uid = p.userFbId || p.userId || p.userID || p.id;
       if (!uid) continue;
-      const info = await api.getUserInfo(uid);
-      const name = info?.[uid]?.name || "New Member";
+      let name = "New Member";
+      try {
+        const info = await api.getUserInfo(uid);
+        name = info?.[uid]?.name || name;
+      } catch (_) {}
       welcomeNames.push(name);
-      mentionArray.push({
-        id: uid,
-        tag: name
-      });
+      mentionArray.push({ id: uid, tag: name });
     }
 
-    const msg = 
+    const msg =
       `👋 Welcome ${welcomeNames.join(", ")}!\n` +
       `You’re now part of "${groupName}" 🎉\n` +
       `Member count: ${memberCount}`;
@@ -109,7 +108,6 @@ module.exports.handleEvent = async function ({ api, event }) {
       },
       threadID
     );
-
   } catch (err) {
     console.error("welcome-kaiz error:", err.message || err);
   }
