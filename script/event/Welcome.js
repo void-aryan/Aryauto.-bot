@@ -1,45 +1,113 @@
-const axios = require('axios');
 const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
-    name: "welcome",
-    version: "1.0.0",
+  name: "welcome",
+  version: "1.0.0",
+  role: 0,
+  eventType: ["log:subscribe"],
+  hasEvent: true,
+  credits: "ARI",
+  description: "Sends a welcome image when a new member joins"
 };
 
-module.exports.handleEvent = async function ({ api, event }) {
-    if (event.logMessageType === "log:subscribe") {
-        const addedParticipants = event.logMessageData.addedParticipants;
-        const senderID = addedParticipants[0].userFbId;
-        let name = await api.getUserInfo(senderID).then(info => info[senderID].name);
+async function getAvatar(userID) {
+  try {
+    const res = await axios.get(
+      `https://graph.facebook.com/${userID}/picture?type=large&width=1024&height=1024`,
+      { responseType: 'arraybuffer' }
+    );
+    return Buffer.from(res.data);
+  } catch {
+    return null;
+  }
+}
 
-        // Truncate name if it's too long
-        const maxLength = 15;
-        if (name.length > maxLength) {
-            name = name.substring(0, maxLength - 3) + '...';
-        }
+async function createWelcomeCard({ name, avatarBuffer, groupName }) {
+  const WIDTH = 1200;
+  const HEIGHT = 500;
+  const canvas = createCanvas(WIDTH, HEIGHT);
+  const ctx = canvas.getContext('2d');
 
-        const groupInfo = await api.getThreadInfo(event.threadID);
-        const groupIcon = groupInfo.imageSrc || "https://i.ibb.co/G5mJZxs/rin.jpg";
-        const memberCount = groupInfo.participantIDs.length;
-        const groupName = groupInfo.threadName || "this group";
-        const background = groupInfo.imageSrc || "https://i.ibb.co/4YBNyvP/images-76.jpg";
+  // Background gradient
+  const gradient = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+  gradient.addColorStop(0, "#0f2027");
+  gradient.addColorStop(0.5, "#203a43");
+  gradient.addColorStop(1, "#2c5364");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-        const url = `https://hershey-api.onrender.com/api/welcome?username=${encodeURIComponent(name)}&avatarUrl=https://api-canvass.vercel.app/profile?uid=${senderID}&groupname=${encodeURIComponent(groupName)}&bg=${encodeURIComponent(background)}&memberCount=${memberCount}`;
+  // Circular avatar
+  if (avatarBuffer) {
+    const avatar = await loadImage(avatarBuffer);
+    const size = 300;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(WIDTH / 2, HEIGHT / 2 - 50, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(
+      avatar,
+      WIDTH / 2 - size / 2,
+      HEIGHT / 2 - size / 2 - 50,
+      size,
+      size
+    );
+    ctx.restore();
+  }
 
-        try {
-            const { data } = await axios.get(url, { responseType: 'arraybuffer' });
-            const filePath = './script/cache/welcome_image.jpg';
-            fs.writeFileSync(filePath, Buffer.from(data));
+  // Text: Welcome
+  ctx.font = 'bold 80px Arial';
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.fillText("WELCOME", WIDTH / 2, HEIGHT / 2 + 200);
 
-            api.sendMessage({
-                body: `Everyone welcome the new member ${name} to ${groupName}!`,
-                attachment: fs.createReadStream(filePath)
-            }, event.threadID, () => fs.unlinkSync(filePath));
-        } catch (error) {
-            console.error("Error fetching welcome image:", error);
-            api.sendMessage({
-                body: `🤖 | everyone welcome the new member ${name} to ${groupName}!`
-            }, event.threadID);
-        }
+  // Text: Name
+  ctx.font = 'bold 60px Arial';
+  ctx.fillStyle = "#FFD700";
+  ctx.fillText(name, WIDTH / 2, HEIGHT / 2 + 260);
+
+  // Text: Group name
+  ctx.font = '30px Arial';
+  ctx.fillStyle = "#fff";
+  ctx.fillText(`to ${groupName}`, WIDTH / 2, HEIGHT / 2 + 300);
+
+  return canvas.toBuffer();
+}
+
+module.exports.onEvent = async function ({ api, event }) {
+  try {
+    if (event.logMessageType !== "log:subscribe") return;
+
+    const threadID = event.threadID;
+    const threadInfo = await api.getThreadInfo(threadID);
+    const groupName = threadInfo?.name || "our group";
+
+    const added = event.logMessageData?.addedParticipants || [];
+    for (const user of added) {
+      const userID = user.userFbId || user.userID || user.id;
+      const name = user.fullName || "New Member";
+
+      const avatarBuffer = await getAvatar(userID);
+      const cardBuffer = await createWelcomeCard({ name, avatarBuffer, groupName });
+
+      const fileName = path.join(__dirname, `welcome_${userID}.png`);
+      fs.writeFileSync(fileName, cardBuffer);
+
+      await api.sendMessage(
+        {
+          body: `🎉 Welcome to ${groupName}, ${name}! Enjoy and stay!`,
+          mentions: [{ tag: name, id: userID }],
+          attachment: fs.createReadStream(fileName)
+        },
+        threadID
+      );
+
+      fs.unlinkSync(fileName);
     }
+  } catch (err) {
+    console.error("Error in welcome event:", err);
+  }
 };
