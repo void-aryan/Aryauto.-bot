@@ -2,16 +2,16 @@ module.exports.config = {
   name: "goiadmin",
   version: "1.0.0",
   hasPermission: 0,
-  credits: "AJ/ARI",
+  credits: "Ren/Wick",
   description: "Auto reply kapag binanggit ang pangalan ng admin",
   commandCategory: "autobot",
   usages: "Automatic reply kapag tinawag si admin",
   cooldowns: 2
 };
 
-module.exports.handleEvent = async function ({ event, api }) {
+module.exports.handleEvent = async function ({ event, Renwick }) {
   const nameCalled = event.body.toLowerCase();
-  const adminNames = ["Ari", "hoy ari", "ari", "ARI", "si ari", "asan si ari?", "nasaan si ari?"];
+  const adminNames = ["Renwick", "hoy Renwick", "Renwick", "Renwick", "si Renwick", "asan si Renwick?", "nasaan si Renwick?"];
 
   const matched = adminNames.some(name => nameCalled.includes(name));
   if (matched) {
