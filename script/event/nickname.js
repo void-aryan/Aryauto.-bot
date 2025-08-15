@@ -2,11 +2,11 @@ let config = {};
 try {
     config = require("../config.json");
 } catch (e) {
-    config.botName = " 🤖| 𝙴𝚌𝚑𝚘 𝙰𝙸";
+    config.botName = "BOT";
 }
 
 module.exports.config = {
-    name: "Azaleano",
+    name: "nickname",
     version: "1.0.1",
     role: 0,
     description: "Automatically sets the bot's nickname when added to a group.",
@@ -27,15 +27,9 @@ module.exports.handleEvent = async function ({ api, event }) {
             event.logMessageData.addedParticipants.some(user => user.userFbId === api.getCurrentUserID())
         ) {
             const botID = api.getCurrentUserID();
-            const botName = config.botName || "🤖 | 𝙴𝚌𝚑𝚘 𝙰𝙸";
+            const botName = config.botName || "BOT";
 
             api.changeNickname(botName, event.threadID, botID, (err) => {
                 if (err) return console.error("❌ Failed to set nickname:", err);
                 // Optionally, notify group
-                // api.sendMessage(`🤖 My nickname has been set to '${botName}'!`, event.threadID);
-            });
-        }
-    } catch (error) {
-        console.error("❌ Error in nickname event handler:", error);
-    }
-};
+                // api.sendMessage(`🤖 My nickname has been set to '$
