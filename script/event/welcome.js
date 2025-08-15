@@ -1,23 +1,22 @@
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
     name: "welcome",
-    version: "3.4.0",
+    version: "3.8.0",
     role: 0,
-    description: "Welcome new members with cyber design and auto gender avatars",
+    description: "Welcome new members with cyber design and male/female avatars",
     credits: "ARI",
     hasEvent: true
 };
 
-// Register custom font if available
+// Register custom font
 try {
     registerFont(path.join(__dirname, "fonts", "Poppins-Bold.ttf"), { family: "Poppins" });
 } catch {}
 
-// Cyber colors & effects
+// Cyber grid effect
 function drawCyberGrid(ctx, width, height) {
     ctx.strokeStyle = 'rgba(0,255,255,0.2)';
     ctx.lineWidth = 1;
@@ -37,21 +36,20 @@ function drawCyberGrid(ctx, width, height) {
 
 const genderAvatars = {
     male: "https://i.imgur.com/vA3Vkm7.png",
-    female: "https://i.imgur.com/2tHxLh3.png",
-    neutral: "https://i.imgur.com/qUWS3ps.png"
+    female: "https://i.imgur.com/2tHxLh3.png"
 };
 
 async function getUserGender(api, userID) {
     try {
         const info = await api.getUserInfo(userID);
         const user = info[userID];
-        if (!user) return 'neutral';
-        const gender = user.gender; 
+        if (!user || !user.gender) return Math.random() > 0.5 ? 'male' : 'female';
+        const gender = user.gender;
         if (gender === 'male') return 'male';
         if (gender === 'female') return 'female';
-        return 'neutral';
+        return Math.random() > 0.5 ? 'male' : 'female';
     } catch {
-        return 'neutral';
+        return Math.random() > 0.5 ? 'male' : 'female';
     }
 }
 
@@ -93,9 +91,9 @@ module.exports.handleEvent = async function ({ api, event }) {
         if (!userID) continue;
 
         const gender = await getUserGender(api, userID);
-        const avatarPath = genderAvatars[gender] || genderAvatars.neutral;
+        const avatarURL = genderAvatars[gender];
 
-        const avatarImg = await loadImage(avatarPath);
+        const avatarImg = await loadImage(avatarURL);
 
         ctx.save();
         ctx.beginPath();
@@ -139,3 +137,4 @@ module.exports.handleEvent = async function ({ api, event }) {
 
     fs.unlinkSync(imagePath);
 };
+        
