@@ -1,52 +1,141 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
     name: "welcome",
-    version: "3.1.0",
+    version: "3.4.0",
     role: 0,
-    description: "Welcome new members with premium design",
+    description: "Welcome new members with cyber design and auto gender avatars",
     credits: "ARI",
     hasEvent: true
 };
 
-// Configuration
-const API_BASE = "https://kaiz-apis.gleeze.com/api/welcomecard";
+// Register custom font if available
+try {
+    registerFont(path.join(__dirname, "fonts", "Poppins-Bold.ttf"), { family: "Poppins" });
+} catch {}
 
-async function generateWelcomeCard({ background, name, text2, text3, avatar }) {
-  try {
-    const url = `${API_BASE}?background=${encodeURIComponent(background)}&text1=${encodeURIComponent(name)}&text2=${encodeURIComponent(text2)}&text3=${encodeURIComponent(text3)}&avatar=${encodeURIComponent(avatar)}`;
-    
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-
-    const fileName = `${name}_welcome.png`;
-    const filePath = path.join(__dirname, fileName);
-    fs.writeFileSync(filePath, response.data);
-
-    console.log(`Welcome card saved: ${filePath}`);
-    return filePath;
-  } catch (err) {
-    console.error("Error generating welcome card:", err.message);
-    return null;
-  }
+// Cyber colors & effects
+function drawCyberGrid(ctx, width, height) {
+    ctx.strokeStyle = 'rgba(0,255,255,0.2)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < width; i += 50) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, height);
+        ctx.stroke();
+    }
+    for (let j = 0; j < height; j += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(width, j);
+        ctx.stroke();
+    }
 }
 
-async function onNewMemberJoin(member) {
-  const background = "https://i.imgur.com/iKekhCb.jpeg"; 
-  const name = member.name;
-  const avatar = member.avatarURL || ""; 
-  const text2 = "Welcome to the group!";
-  const text3 = `Member ${member.count || "1"}`;
+const genderAvatars = {
+    male: path.join(__dirname, "avatars", "male.png"),
+    female: path.join(__dirname, "avatars", "female.png"),
+    neutral: path.join(__dirname, "avatars", "neutral.png")
+};
 
-  const welcomeCardPath = await generateWelcomeCard({ background, name, text2, text3, avatar });
-
-  return welcomeCardPath;
+async function getUserGender(api, userID) {
+    try {
+        const info = await api.getUserInfo(userID);
+        const user = info[userID];
+        if (!user) return 'neutral';
+        const gender = user.gender; 
+        if (gender === 'male') return 'male';
+        if (gender === 'female') return 'female';
+        return 'neutral';
+    } catch {
+        return 'neutral';
+    }
 }
 
-onNewMemberJoin({
-  name: "Kaizenji",
-  avatarURL: "https://avatars.githubusercontent.com/u/154584066",
-  count: 99,
-  channelID: "example-channel-id",
-});
+module.exports.handleEvent = async function ({ api, event }) {
+    if (event.logMessageType !== "log:subscribe") return;
+    const addedParticipants = event.logMessageData?.addedParticipants;
+    if (!addedParticipants?.length) return;
+
+    const groupInfo = await api.getThreadInfo(event.threadID);
+    const groupName = groupInfo.threadName || "this group";
+
+    const width = 900, height = 500;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#0ff');
+    gradient.addColorStop(1, '#08f');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = 0; i < 50; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(0,255,255,${Math.random() * 0.4})`;
+        ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    drawCyberGrid(ctx, width, height);
+
+    const avatarSize = 85;
+    const avatarSpacing = 20;
+    const totalWidth = addedParticipants.length * (avatarSize * 2 + avatarSpacing) - avatarSpacing;
+    let startX = width / 2 - totalWidth / 2;
+
+    const names = [];
+    for (const participant of addedParticipants) {
+        const userID = participant.userFbId || participant.userId || participant.id;
+        if (!userID) continue;
+
+        const gender = await getUserGender(api, userID);
+        const avatarPath = genderAvatars[gender] || genderAvatars.neutral;
+
+        const avatarImg = await loadImage(avatarPath);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatarImg, startX, height / 2 - 125, avatarSize * 2, avatarSize * 2);
+        ctx.restore();
+
+        ctx.strokeStyle = 'cyan';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize + 4, 0, Math.PI * 2);
+        ctx.stroke();
+
+        startX += avatarSize * 2 + avatarSpacing;
+
+        const info = await api.getUserInfo(userID);
+        names.push(info[userID]?.name || "New Member");
+    }
+
+    ctx.fillStyle = '#0ff';
+    ctx.textAlign = "center";
+    ctx.font = "bold 50px Poppins, Sans-serif";
+    ctx.fillText(`WELCOME, ${names.join(", ")}!`, width / 2, height - 130);
+
+    ctx.font = "28px Poppins, Sans-serif";
+    ctx.fillText(`to ${groupName}`, width / 2, height - 85);
+
+    ctx.font = "20px Poppins, Sans-serif";
+    ctx.fillText("We're glad you joined the cyberspace 🌐", width / 2, height - 50);
+
+    const cacheDir = path.join(__dirname, 'cache');
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+    const imagePath = path.join(cacheDir, `welcome_${Date.now()}.png`);
+    fs.writeFileSync(imagePath, canvas.toBuffer("image/png"));
+
+    await api.sendMessage({
+        body: `🎉 Everyone welcome ${names.join(", ")} to ${groupName}!`,
+        attachment: fs.createReadStream(imagePath)
+    }, event.threadID);
+
+    fs.unlinkSync(imagePath);
+};
