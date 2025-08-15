@@ -36,9 +36,9 @@ function drawCyberGrid(ctx, width, height) {
 }
 
 const genderAvatars = {
-    male: path.join(__dirname, "avatars", "male.png"),
-    female: path.join(__dirname, "avatars", "female.png"),
-    neutral: path.join(__dirname, "avatars", "neutral.png")
+    male: "https://i.imgur.com/vA3Vkm7.png",
+    female: "https://i.imgur.com/2tHxLh3.png",
+    neutral: "https://i.imgur.com/qUWS3ps.png"
 };
 
 async function getUserGender(api, userID) {
