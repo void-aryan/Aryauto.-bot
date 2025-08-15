@@ -35,8 +35,16 @@ function drawCyberGrid(ctx, width, height) {
 }
 
 const genderAvatars = {
-    male: "https://i.imgur.com/vA3Vkm7.png",
-    female: "https://i.imgur.com/2tHxLh3.png"
+    male: [
+        "https://i.imgur.com/vA3Vkm7.png",
+        "https://i.imgur.com/37acK9E.png",
+        "https://i.imgur.com/UMSp2Do.png"
+        ],
+    female: [
+        "https://i.imgur.com/YmM7jZZ.png",
+        "https://i.imgur.com/Tlwqbu6.png",
+        "https://i.imgur.com/PN3g18j.png"
+        ]
 };
 
 async function getUserGender(api, userID) {
