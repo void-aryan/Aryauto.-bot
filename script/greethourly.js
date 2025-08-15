@@ -9,7 +9,6 @@ module.exports.config = {
 
 const TIMEZONE = "Asia/Manila";
 
-// Schedule in 24-hour format
 const SCHEDULES = [
   { hour: 7, messages: [
     "🌞 Good morning! Panibagong araw, panibagong oportunidad!",
@@ -31,7 +30,7 @@ const SCHEDULES = [
     "🌙 Good night! Matulog ka na para fresh bukas.",
     "Late night na! Pahinga ka na para makabawi ng energy. 😴",
     "Good night! Kita-kits bukas para sa panibagong laban. ✨",
-    "tulog na, tama na kaka-relapse."
+    "Tulog na, tama na kaka-relapse."
   ]}
 ];
 
@@ -132,11 +131,11 @@ function startScheduler(api) {
   scheduleNext();
 }
 
-// No event & no manual command
-module.exports.handleEvent = function () { return; };
-module.exports.run = function () { return; };
-
-// Auto start
+// Para mag-load agad pag start ng bot
 module.exports.onLoad = function ({ api }) {
   startScheduler(api);
 };
+
+// Wala talagang command at event na ginagamit dito
+module.exports.run = function () { return; };
+module.exports.handleEvent = function () { return; };
