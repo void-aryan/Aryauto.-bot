@@ -123,7 +123,7 @@ module.exports.handleEvent = async function ({ api, event }) {
     ctx.fillText(`to ${groupName}`, width / 2, height - 85);
 
     ctx.font = "20px Poppins, Sans-serif";
-    ctx.fillText("We're glad you joined the cyberspace 🌐", width / 2, height - 50);
+    ctx.fillText("We're glad you joined this group chat please interact us", width / 2, height - 50);
 
     const cacheDir = path.join(__dirname, 'cache');
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
