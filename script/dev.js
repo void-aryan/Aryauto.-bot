@@ -138,4 +138,11 @@ module.exports.run = async function ({ api, event, args }) {
         await api.changeBio(newBio);
         return api.sendMessage("✅ Bio changed successfully!", event.threadID, event.messageID);
       } catch (err) {
-        return api.sendMessage("❌ F
+        return api.sendMessage("❌ Failed to change bio.", event.threadID, event.messageID);
+      }
+    }
+
+    default:
+      return api.sendMessage(`❓ Unknown subcommand "${sub}". Available: avatar, post, out, changebio`, event.threadID, event.messageID);
+  }
+};
