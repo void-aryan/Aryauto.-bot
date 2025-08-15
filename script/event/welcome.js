@@ -1,32 +1,31 @@
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
 module.exports.config = {
     name: "welcome",
-    version: "4.1.0",
+    version: "3.8.0",
     role: 0,
-    description: "Dark cyber welcome card with multiple avatars",
+    description: "Welcome new members with cyber design and male/female avatars",
     credits: "ARI",
     hasEvent: true
 };
 
-// Register custom font
 try {
     registerFont(path.join(__dirname, "fonts", "Poppins-Bold.ttf"), { family: "Poppins" });
 } catch {}
 
+// Cyber grid effect
 function drawCyberGrid(ctx, width, height) {
-    ctx.strokeStyle = 'rgba(0,255,255,0.1)';
+    ctx.strokeStyle = 'rgba(0,255,255,0.2)';
     ctx.lineWidth = 1;
-    for (let i = 0; i < width; i += 40) {
+    for (let i = 0; i < width; i += 50) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, height);
         ctx.stroke();
     }
-    for (let j = 0; j < height; j += 40) {
+    for (let j = 0; j < height; j += 50) {
         ctx.beginPath();
         ctx.moveTo(0, j);
         ctx.lineTo(width, j);
@@ -34,27 +33,22 @@ function drawCyberGrid(ctx, width, height) {
     }
 }
 
+// Male and female avatar URLs only
 const genderAvatars = {
     male: "https://i.imgur.com/vA3Vkm7.png",
-    female: "https://i.imgur.com/YmM7jZZ.png"
+    female: "https://i.imgur.com/sbqWHV4.png"
 };
 
-async function fetchAvatar(url) {
-    try {
-        const res = await axios.get(url, { responseType: 'arraybuffer' });
-        return loadImage(Buffer.from(res.data));
-    } catch (err) {
-        console.error("Avatar load failed:", url, err);
-        return null;
-    }
-}
-
+// Get user gender or randomly assign male/female if unknown
 async function getUserGender(api, userID) {
     try {
         const info = await api.getUserInfo(userID);
         const user = info[userID];
         if (!user || !user.gender) return Math.random() > 0.5 ? 'male' : 'female';
-        return (user.gender === 'male' || user.gender === 'female') ? user.gender : (Math.random() > 0.5 ? 'male' : 'female');
+        const gender = user.gender;
+        if (gender === 'male') return 'male';
+        if (gender === 'female') return 'female';
+        return Math.random() > 0.5 ? 'male' : 'female';
     } catch {
         return Math.random() > 0.5 ? 'male' : 'female';
     }
@@ -72,18 +66,21 @@ module.exports.handleEvent = async function ({ api, event }) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
+    // Background gradient
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#0a0a0a');
-    gradient.addColorStop(1, '#111111');
+    gradient.addColorStop(0, '#0ff');
+    gradient.addColorStop(1, '#08f');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    for (let i = 0; i < 70; i++) {
+    // Neon particles
+    for (let i = 0; i < 50; i++) {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(0,255,255,${Math.random() * 0.3})`;
-        ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,255,255,${Math.random() * 0.4})`;
+        ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 5, 0, Math.PI * 2);
         ctx.fill();
-    
+    }
+
     drawCyberGrid(ctx, width, height);
 
     const avatarSize = 85;
@@ -97,27 +94,23 @@ module.exports.handleEvent = async function ({ api, event }) {
         if (!userID) continue;
 
         const gender = await getUserGender(api, userID);
-        const avatars = genderAvatars[gender];
-        const avatarURL = avatars[Math.floor(Math.random() * avatars.length)];
-        const avatarImg = await fetchAvatar(avatarURL);
+        const avatarURL = genderAvatars[gender];
 
-        if (avatarImg) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(avatarImg, startX, height / 2 - 125, avatarSize * 2, avatarSize * 2);
-            ctx.restore();
+        const avatarImg = await loadImage(avatarURL);
 
-            ctx.strokeStyle = 'cyan';
-            ctx.shadowColor = 'cyan';
-            ctx.shadowBlur = 20;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize + 4, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatarImg, startX, height / 2 - 125, avatarSize * 2, avatarSize * 2);
+        ctx.restore();
+
+        // Neon ring
+        ctx.strokeStyle = 'cyan';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(startX + avatarSize, height / 2 - 40, avatarSize + 4, 0, Math.PI * 2);
+        ctx.stroke();
 
         startX += avatarSize * 2 + avatarSpacing;
 
@@ -125,9 +118,8 @@ module.exports.handleEvent = async function ({ api, event }) {
         names.push(info[userID]?.name || "New Member");
     }
 
+    // Cyber-style text
     ctx.fillStyle = '#0ff';
-    ctx.shadowColor = 'cyan';
-    ctx.shadowBlur = 20;
     ctx.textAlign = "center";
     ctx.font = "bold 50px Poppins, Sans-serif";
     ctx.fillText(`WELCOME, ${names.join(", ")}!`, width / 2, height - 130);
@@ -136,8 +128,7 @@ module.exports.handleEvent = async function ({ api, event }) {
     ctx.fillText(`to ${groupName}`, width / 2, height - 85);
 
     ctx.font = "20px Poppins, Sans-serif";
-    ctx.fillText("We’re happy that you’re here. Please interact with us, welcome!", width / 2, height - 50);
-    ctx.shadowBlur = 0;
+    ctx.fillText("We're glad you joined the cyberspace 🌐", width / 2, height - 50);
 
     const cacheDir = path.join(__dirname, 'cache');
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
