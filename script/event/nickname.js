@@ -2,11 +2,11 @@ let config = {};
 try {
     config = require("../config.json");
 } catch (e) {
-    config.botName = "🤖 | 𝙴𝚌𝚑𝚘 𝙰𝙸";
+    config.botName = " Renwick| 𝙴𝚌𝚑𝚘 𝙰𝙸";
 }
 
 module.exports.config = {
-    name: "nickname",
+    name: "Azaleano",
     version: "1.0.1",
     role: 0,
     description: "Automatically sets the bot's nickname when added to a group.",
