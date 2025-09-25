@@ -27,7 +27,7 @@ module.exports.handleEvent = async function ({ api, event }) {
             event.logMessageData.addedParticipants.some(user => user.userFbId === api.getCurrentUserID())
         ) {
             const botID = api.getCurrentUserID();
-            const botName = config.botName || "BOT";
+            const botName = config.botName || "𝑽𝑶𝑳𝑫𝑰𝑮𝑶 𝑩𝑶𝑻";
 
             api.changeNickname(botName, event.threadID, botID, (err) => {
                 if (err) return console.error("❌ Failed to set nickname:", err);
