@@ -16,7 +16,7 @@ function convertToBold(text) {
 }
 
 module.exports.config = {
-  name: 'ai',
+  name: 'zaraki',
   version: '1.0.0',
   hasPermission: 0,
   usePrefix: false,
