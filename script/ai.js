@@ -1,60 +1,110 @@
 const axios = require('axios');
 
+function convertToBold(text) {
+  const boldMap = {
+    'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴',
+    'h': '𝗵', 'i': '𝗶', 'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻',
+    'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿', 's': '𝘀', 't': '𝘁', 'u': '𝘂',
+    'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
+    'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚',
+    'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡',
+    'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝗦', 'T': '𝗧', 'U': '𝗨',
+    'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭',
+  };
+
+  return text.split('').map(char => boldMap[char] || char).join('');
+}
+
 module.exports.config = {
   name: 'ai',
-  version: '1.0.0',
-  role: 0,
-  hasPrefix: false,
-  aliases: ['gpt', 'gimage'],
-  description: "Analyze question or Vision",
-  usage: "ai [question] or reply to an image",
-  credits: 'Vern',
-  cooldown: 3,
+  version: '1.0.1',
+  hasPermission: 0,
+  usePrefix: false,
+  aliases: ['gpt', 'openai'],
+  description: "An AI command powered by GPT-4o.",
+  usages: "ai [prompt]",
+  credits: 'LorexAi',
+  cooldowns: 3,
+  dependencies: {
+    "axios": ""
+  }
 };
 
 module.exports.run = async function({ api, event, args }) {
-  const promptText = args.join(" ").trim();
-  const userReply = event.messageReply?.body || '';
-  const finalPrompt = `${userReply} ${promptText}`.trim();
-  const senderID = event.senderID;
-  const threadID = event.threadID;
-  const messageID = event.messageID;
+  const input = args.join(' ');
+  const uid = event.senderID;
 
-  if (!finalPrompt && !event.messageReply?.attachments?.[0]?.url) {
-    return api.sendMessage("❌ Please provide a prompt or reply to an image.", threadID, messageID);
-  }
+  const isPhoto = event.type === "message_reply" && event.messageReply.attachments[0]?.type === "photo";
+  
+  if (isPhoto) {
+    const photoUrl = event.messageReply.attachments[0].url;
 
-  api.sendMessage('🤖 𝗔𝗜 𝗜𝗦 𝗣𝗥𝗢𝗖𝗘𝗦𝗦𝗜𝗡𝗚 𝗬𝗢𝗨𝗥 𝗥𝗘𝗤𝗨𝗘𝗦𝗧...', threadID, async (err, info) => {
-    if (err) return;
+    if (!input) {
+      return api.sendMessage(
+        "Please provide a prompt along with the image (e.g., 'ai describe this image').",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    api.sendMessage("🔄 Analyzing image...", event.threadID, event.messageID);
 
     try {
-      let imageUrl = "";
-      if (event.messageReply?.attachments?.[0]?.type === 'photo') {
-        imageUrl = event.messageReply.attachments[0].url;
-      }
-
-      const { data } = await axios.get("https://apis-rho-nine.vercel.app/gemini", {
+      const { data } = await axios.get('https://kaiz-apis.gleeze.com/api/gemini-vision', {
         params: {
-          ask: finalPrompt,
-          imagurl: imageUrl
+          q: input,
+          uid: uid,
+          imageUrl: photoUrl,
+          apikey: 'acb7e0e8-bbc3-4697-bf64-1f3c6231dee7'
         }
       });
 
-      const responseText = data.description || "❌ No response received from AI.";
-
-      // Optional: Get user's name
-      api.getUserInfo(senderID, (err, infoUser) => {
-        const userName = infoUser?.[senderID]?.name || "Unknown User";
-        const timePH = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-        const replyMessage = `🤖 𝗩𝗢𝗟𝗗𝗬 𝗔𝗦𝗦𝗜𝗦𝗧𝗔𝗡𝗧\n━━━━━━━━━━━━━━━━━━\n${responseText}\n━━━━━━━━━━━━━━━━━━\n🗣 𝗔𝘀𝗸𝗲𝗱 𝗕𝘆: ${userName}\n⏰ 𝗧𝗶𝗺𝗲: ${timePH}`;
-
-        api.editMessage(replyMessage, info.messageID);
-      });
-
+      if (data && data.response) {
+        return api.sendMessage(data.response, event.threadID, event.messageID);
+      } else {
+        return api.sendMessage("Unexpected response format from the image analysis API.", event.threadID, event.messageID);
+      }
     } catch (error) {
-      console.error("AI Error:", error);
-      const errMsg = "❌ Error: " + (error.response?.data?.message || error.message || "Unknown error occurred.");
-      api.editMessage(errMsg, info.messageID);
+      console.error("Error processing image analysis request:", error.message || error);
+      api.sendMessage("An error occurred while processing the image. Please try again.", event.threadID, event.messageID);
     }
-  });
+
+    return;
+  }
+
+  if (!input) {
+    return api.sendMessage(
+      "❌ Please provide a query or prompt",
+      event.threadID,
+      event.messageID
+    );
+  }
+
+  api.sendMessage("🔄 Generating...", event.threadID, event.messageID);
+
+  try {
+    const { data } = await axios.get('https://kaiz-apis.gleeze.com/api/gemini-flash-2.0', {
+      params: {
+        q: input,
+        uid: uid,
+        apikey: 'acb7e0e8-bbc3-4697-bf64-1f3c6231dee7'
+      }
+    });
+
+    if (!data || !data.response) {
+      return api.sendMessage("Sorry, I didn't quite catch that. Could you please try asking again?", event.threadID, event.messageID);
+    }
+
+    const formattedResponse = data.response
+      .replace(/\*\*(.*?)\*\*/g, (_, text) => convertToBold(text))
+      .replace(/##(.*?)##/g, (_, text) => convertToBold(text))
+      .replace(/###\s*/g, '')
+      .replace(/\n{3,}/g, '\n\n');
+
+    return api.sendMessage(formattedResponse, event.threadID, event.messageID);
+
+  } catch (error) {
+    console.error("⛔ Error processing request:", error.message || error);
+    return api.sendMessage("⛔ An error occurred while processing your request. Please try again.", event.threadID, event.messageID);
+  }
 };
