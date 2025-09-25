@@ -16,7 +16,7 @@ function convertToBold(text) {
 }
 
 module.exports.config = {
-  name: 'ai',
+  name: 'voldy',
   version: '1.0.1',
   hasPermission: 0,
   usePrefix: false,
