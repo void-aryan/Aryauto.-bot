@@ -15,7 +15,7 @@ function convertToBold(text) {
 const responseOpeners = ["𝗔𝗥𝗬𝗔𝗡 𝗔𝗜"];
 
 module.exports.config = {
-  name: 'aryan',
+  name: 'ai',
   version: '1.1.1',
   hasPermission: 0,
   usePrefix: false,
